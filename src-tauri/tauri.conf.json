@@ -42,7 +42,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg2RDE3MUQ3OEUxODBFMkEKUldRcURoaU8xM0hSaGhZZitocVNkSE5rSk5tSlJoeGRNSS8vSFRKZnlQOC85d0pUcDNHUngycDcK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDREQkIzNEI2MzNCNzMyQzMKUldURE1yY3p0alM3VFFXRmxKZ2hqeEhPNjVRNzhJZGRHc2VZUVB2NkdjU05KRTdkQkZ2Z1Y3b3IK",
       "endpoints": [
         "https://github.com/UPLABINTERNO/UPLAB-INTERNO/releases/latest/download/latest.json"
       ]
