@@ -1,0 +1,50 @@
+[package]
+name = "interno-uplab"
+version = "0.1.0"
+description = "Sistema interno modular UPLAB"
+authors = ["UPLAB"]
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+# Necessário para Tauri v2 (desktop + mobile compartilham a lib).
+name = "interno_uplab_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+
+# Serialização
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Banco de dados local (SQLite embutido, sem dependência externa)
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# Concorrência / estado
+parking_lot = "0.12"
+
+# Erros
+thiserror = "1"
+
+# IDs e datas
+uuid = { version = "1", features = ["v4"] }
+time = { version = "0.3", features = ["formatting", "macros"] }
+
+# Hash de senha (rand_core/getrandom habilita o OsRng usado para gerar o salt)
+argon2 = "0.5"
+rand_core = { version = "0.6", features = ["getrandom"] }
+
+# Logging
+log = "0.4"
+tauri-plugin-log = "2"
+
+[features]
+# Habilita asserts extras de dev no custom protocol.
+custom-protocol = ["tauri/custom-protocol"]

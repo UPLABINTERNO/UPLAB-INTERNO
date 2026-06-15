@@ -1,0 +1,6 @@
+# Configuração mínima do projeto Supabase (para o CLI).
+project_id = "interno-uplab"
+
+[functions.admin-create-user]
+# Exige JWT válido para invocar; a checagem de admin é feita dentro da função.
+verify_jwt = true

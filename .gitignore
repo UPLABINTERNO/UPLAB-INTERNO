@@ -1,0 +1,23 @@
+# Node / Vite / SvelteKit
+node_modules/
+.svelte-kit/
+build/
+dist/
+.DS_Store
+*.log
+
+# Tauri / Rust
+src-tauri/target/
+src-tauri/gen/
+
+# Chave privada do updater — NUNCA versionar (vai como secret no GitHub)
+src-tauri/updater.key
+src-tauri/updater.key.pub
+
+# Local
+*.db
+*.db-shm
+*.db-wal
+.env
+.env.*
+!.env.example
