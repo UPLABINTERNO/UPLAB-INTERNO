@@ -1,5 +1,54 @@
 import { supabase } from '$core/supabase';
 
+// --- Histórico de conversas (alimentado pela Edge Function webhook-zap) ---
+
+export interface Conversa {
+  conversation_id: string;
+  chat_id: string;
+  contact_name: string | null;
+  department: string | null;
+  attendant_name: string | null;
+  labels: { nome?: string; color?: string }[];
+  is_closed: boolean;
+  last_message_at: string | null;
+  updated_at: string;
+}
+
+export interface Mensagem {
+  id: string;
+  direcao: 'recebida' | 'enviada' | 'sistema';
+  author_name: string | null;
+  texto: string | null;
+  ts: string;
+}
+
+/** Lista as conversas mais recentes (filtro opcional por nome/telefone). */
+export async function listConversas(busca = ''): Promise<Conversa[]> {
+  let q = supabase
+    .from('uplab_conversas')
+    .select('conversation_id, chat_id, contact_name, department, attendant_name, labels, is_closed, last_message_at, updated_at')
+    .order('last_message_at', { ascending: false, nullsFirst: false })
+    .limit(100);
+  if (busca.trim()) {
+    const t = `%${busca.trim()}%`;
+    q = q.or(`contact_name.ilike.${t},chat_id.ilike.${t}`);
+  }
+  const { data, error } = await q;
+  if (error) throw error;
+  return data as Conversa[];
+}
+
+/** Mensagens de uma conversa, em ordem cronológica. */
+export async function listMensagens(conversationId: string): Promise<Mensagem[]> {
+  const { data, error } = await supabase
+    .from('uplab_mensagens')
+    .select('id, direcao, author_name, texto, ts')
+    .eq('conversation_id', conversationId)
+    .order('ts', { ascending: true });
+  if (error) throw error;
+  return data as Mensagem[];
+}
+
 /** Linha de horário de atendimento (tabela compartilhada com o robô do WhatsApp). */
 export interface Horario {
   id?: string;
