@@ -24,11 +24,12 @@ const loaders: Record<string, Loader> = {
   campanhas: () => import('$modules/_stub/Module.svelte'),
   tickets_clientes: () => import('$modules/_stub/Module.svelte'),
   tickets_internos: () => import('$modules/_stub/Module.svelte'),
-  chat: () => import('$modules/_stub/Module.svelte'),
+  chat: () => import('$modules/chat/Module.svelte'),
   api: () => import('$modules/_stub/Module.svelte'),
   banco_dados: () => import('$modules/_stub/Module.svelte'),
   logs: () => import('$modules/_stub/Module.svelte'),
-  administrador: () => import('$modules/administrador/Module.svelte')
+  administrador: () => import('$modules/administrador/Module.svelte'),
+  permissoes: () => import('$modules/permissoes/Module.svelte')
 };
 
 export function hasModule(id: string): boolean {

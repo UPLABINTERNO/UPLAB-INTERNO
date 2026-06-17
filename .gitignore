@@ -21,3 +21,14 @@ src-tauri/updater.key.pub
 .env
 .env.*
 !.env.example
+
+# Conversas exportadas do ZapResponder — dados reais de clientes (LGPD).
+# NUNCA versionar no repo público. Importadas para o Supabase via scripts/.
+conversas/*.json
+conversas/._*
+
+# Screenshots de teste — podem conter conversas reais de clientes (LGPD).
+.claude/skills/run-interno-uplab/screenshots/
+
+# Arquivo de referência colado de outro projeto (contém chaves/schema).
+ENV DO OUTRO PROJETO

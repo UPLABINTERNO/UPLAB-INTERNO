@@ -8,3 +8,11 @@ verify_jwt = true
 [functions.webhook-zap]
 # Webhook público do ZapResponder (sem JWT); protegido por ?secret=.
 verify_jwt = false
+
+[functions.zap-conversa]
+# Exige JWT; a checagem de usuário interno é feita dentro da função.
+verify_jwt = true
+
+[functions.zap-info]
+# Exige JWT; a checagem de admin é feita dentro da função.
+verify_jwt = true

@@ -1,7 +1,7 @@
 import { supabase } from '$core/supabase';
+import { painelGet } from '$core/painel';
 
-// --- Histórico de conversas (alimentado pela Edge Function webhook-zap) ---
-
+// --- Conversas (lista recente) ---
 export interface Conversa {
   conversation_id: string;
   chat_id: string;
@@ -14,127 +14,124 @@ export interface Conversa {
   updated_at: string;
 }
 
-export interface Mensagem {
+/** Lista as conversas recentes (organizadas) via API do painel (Vercel). */
+export async function listConversas(): Promise<Conversa[]> {
+  const { itens } = await painelGet<{ itens: Partial<Conversa>[] }>('/api/conversas');
+  return (itens ?? []).map((c) => ({
+    conversation_id: c.conversation_id ?? '',
+    chat_id: c.chat_id ?? '',
+    contact_name: c.contact_name ?? null,
+    department: c.department ?? null,
+    attendant_name: c.attendant_name ?? null,
+    labels: c.labels ?? [],
+    is_closed: c.is_closed ?? false,
+    last_message_at: c.last_message_at ?? null,
+    updated_at: c.updated_at ?? c.last_message_at ?? ''
+  }));
+}
+
+// --- Apelidos editáveis (sobrepõem o nome do ZapResponder) ---
+export async function listApelidos(): Promise<Record<string, string>> {
+  const { data, error } = await supabase.from('uplab_contatos').select('chat_id, apelido');
+  if (error) throw error;
+  const map: Record<string, string> = {};
+  for (const r of data ?? []) map[r.chat_id] = r.apelido;
+  return map;
+}
+
+export async function salvarApelido(chatId: string, apelido: string): Promise<void> {
+  const nome = apelido.trim();
+  if (!nome) {
+    const { error } = await supabase.from('uplab_contatos').delete().eq('chat_id', chatId);
+    if (error) throw error;
+    return;
+  }
+  const { error } = await supabase
+    .from('uplab_contatos')
+    .upsert({ chat_id: chatId, apelido: nome, updated_at: new Date().toISOString() }, { onConflict: 'chat_id' });
+  if (error) throw error;
+}
+
+/** Limpa o cache de conversas/mensagens do webhook (somente admin via RLS). */
+export async function limparConversasCache(): Promise<void> {
+  const e1 = await supabase.from('uplab_mensagens').delete().gte('created_at', '1900-01-01');
+  if (e1.error) throw e1.error;
+  const e2 = await supabase.from('uplab_conversas').delete().gte('created_at', '1900-01-01');
+  if (e2.error) throw e2.error;
+}
+
+// --- Histórico AO VIVO via API do painel (ZapResponder por trás) ---
+export type ClasseMsg = 'cliente' | 'atendente' | 'sistema';
+export interface ZapMensagem {
   id: string;
-  direcao: 'recebida' | 'enviada' | 'sistema';
-  author_name: string | null;
-  texto: string | null;
+  texto: string;
+  classe: ClasseMsg;
+  quem: string;
   ts: string;
 }
-
-/** Lista as conversas mais recentes (filtro opcional por nome/telefone). */
-export async function listConversas(busca = ''): Promise<Conversa[]> {
-  let q = supabase
-    .from('uplab_conversas')
-    .select('conversation_id, chat_id, contact_name, department, attendant_name, labels, is_closed, last_message_at, updated_at')
-    .order('last_message_at', { ascending: false, nullsFirst: false })
-    .limit(100);
-  if (busca.trim()) {
-    const t = `%${busca.trim()}%`;
-    q = q.or(`contact_name.ilike.${t},chat_id.ilike.${t}`);
-  }
-  const { data, error } = await q;
-  if (error) throw error;
-  return data as Conversa[];
+export interface ZapConversa {
+  id: string;
+  chat_id: string;
+  contato: string | null;
+  is_fechado: boolean;
+  status: string | null;
+  atendente_nome: string | null;
+  qtd_conversas: number;
+  count: number;
+}
+export interface ZapResult {
+  conversa: ZapConversa | null;
+  mensagens: ZapMensagem[];
 }
 
-/** Mensagens de uma conversa, em ordem cronológica. */
-export async function listMensagens(conversationId: string): Promise<Mensagem[]> {
-  const { data, error } = await supabase
-    .from('uplab_mensagens')
-    .select('id, direcao, author_name, texto, ts')
-    .eq('conversation_id', conversationId)
-    .order('ts', { ascending: true });
-  if (error) throw error;
-  return data as Mensagem[];
+/** Busca o histórico do cliente (ZapResponder ao vivo) via API do painel. */
+export async function buscarConversaZap(phone: string): Promise<ZapResult> {
+  return painelGet<ZapResult>(`/api/conversa?phone=${encodeURIComponent(phone)}`);
 }
 
-/** Linha de horário de atendimento (tabela compartilhada com o robô do WhatsApp). */
-export interface Horario {
-  id?: string;
-  departamento: string;
-  dia_semana: number; // 0=domingo ... 6=sábado
-  abre: string; // "HH:MM"
-  fecha: string; // "HH:MM"
-  ativo: boolean;
+// --- Dashboard do dia ---
+export interface DashboardDia {
+  clientes_atendidos_hoje: number;
+  mensagens_hoje: number;
+  atendentes_hoje: number;
+  conversas_abertas: number;
+  conversas_encerradas_hoje: number;
+  tempo_resposta_hoje_s: number | null;
+}
+export async function getDashboard(): Promise<DashboardDia> {
+  return painelGet<DashboardDia>('/api/dashboard');
 }
 
-export const DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-
-/** Normaliza "HH:MM:SS" → "HH:MM" para o <input type=time>. */
-const hhmm = (t: string) => (t ?? '').slice(0, 5);
-
-export async function listHorarios(): Promise<Horario[]> {
-  const { data, error } = await supabase
-    .from('horarios_atendimento')
-    .select('id, departamento, dia_semana, abre, fecha, ativo')
-    .order('departamento')
-    .order('dia_semana');
-  if (error) throw error;
-  return (data ?? []).map((h) => ({ ...h, abre: hhmm(h.abre), fecha: hhmm(h.fecha) })) as Horario[];
+// --- Métricas por atendente + KPIs gerais ---
+export interface Metrica {
+  atendente: string;
+  conversas: number;
+  tempo_resposta_medio_s: number | null;
+  tempo_primeira_resposta_medio_s: number | null;
+  tempo_assumir_medio_s: number | null;
+}
+export interface Kpis {
+  total_conversas: number;
+  atendentes_ativos: number;
+  tempo_resposta_medio_s: number | null;
+  tempo_primeira_resposta_medio_s: number | null;
+  tempo_assumir_medio_s: number | null;
+}
+export interface MetricasResult {
+  kpis: Kpis;
+  atendentes: Metrica[];
 }
 
-/** Salva (upsert) as 7 linhas de um departamento. unique(departamento, dia_semana). */
-export async function salvarHorarios(rows: Horario[]): Promise<void> {
-  const payload = rows.map((r) => ({
-    departamento: r.departamento.trim().toLowerCase(),
-    dia_semana: r.dia_semana,
-    abre: r.abre,
-    fecha: r.fecha,
-    ativo: r.ativo,
-    updated_at: new Date().toISOString()
-  }));
-  const { error } = await supabase
-    .from('horarios_atendimento')
-    .upsert(payload, { onConflict: 'departamento,dia_semana' });
-  if (error) throw error;
+export async function getMetricas(): Promise<MetricasResult> {
+  const r = await painelGet<MetricasResult>('/api/metricas');
+  return {
+    kpis: r.kpis ?? {
+      total_conversas: 0,
+      atendentes_ativos: 0,
+      tempo_resposta_medio_s: null,
+      tempo_primeira_resposta_medio_s: null,
+      tempo_assumir_medio_s: null
+    },
+    atendentes: r.atendentes ?? []
+  };
 }
-
-/** Lista de endpoints do robô (referência para copiar). */
-export interface ApiRef {
-  nome: string;
-  metodo: string;
-  url: string;
-  publico: boolean;
-  editavelAqui: string | null;
-}
-
-const BASE = 'https://uplab.vercel.app';
-
-export const API_REFS: ApiRef[] = [
-  {
-    nome: 'Horário de atendimento',
-    metodo: 'GET',
-    url: `${BASE}/api/horario-atendimento?departamento=geral`,
-    publico: true,
-    editavelAqui: 'Sim — edite os horários nesta tela.'
-  },
-  {
-    nome: 'Identificar telefone',
-    metodo: 'GET',
-    url: `${BASE}/api/buscar-telefone?telefone=$phone`,
-    publico: true,
-    editavelAqui: null
-  },
-  {
-    nome: 'Roteamento do atendimento',
-    metodo: 'GET',
-    url: `${BASE}/api/rota/destino/satisfacao?telefone=$phone`,
-    publico: true,
-    editavelAqui: null
-  },
-  {
-    nome: 'Enviar template (campanha)',
-    metodo: 'GET',
-    url: `${BASE}/api/enviar-template?telefone=$phone&template=campanha_do_mes_&de=novo&chave=•••`,
-    publico: false,
-    editavelAqui: null
-  },
-  {
-    nome: 'Flow de cadastro / campanha',
-    metodo: 'GET',
-    url: `${BASE}/api/whatsapp-flow/enviar?telefone=$phone&flow=cadastro&de=novo&chave=•••`,
-    publico: false,
-    editavelAqui: null
-  }
-];

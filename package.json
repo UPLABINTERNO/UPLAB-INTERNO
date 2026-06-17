@@ -18,6 +18,7 @@
     "@sveltejs/kit": "^2.8.0",
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
     "@tauri-apps/cli": "^2.1.0",
+    "pg": "^8.21.0",
     "playwright": "^1.61.0",
     "svelte": "^5.1.0",
     "svelte-check": "^4.0.0",

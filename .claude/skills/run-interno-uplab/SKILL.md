@@ -1,6 +1,6 @@
 ---
 name: run-interno-uplab
-description: Build, run, screenshot e teste do app desktop Interno UPLAB (Tauri 2 + SvelteKit). Use ao pedir para rodar/iniciar/buildar/testar/tirar screenshot do sistema interno, do launcher ou de um módulo (ex.: Financeiro).
+description: Build, run, screenshot, teste e DESIGN/UI do app desktop Interno UPLAB (Tauri 2 + SvelteKit). Use ao pedir para rodar/iniciar/buildar/testar/tirar screenshot do sistema interno, do launcher ou de um módulo (ex.: Financeiro), E ao mexer em tema/layout/componentes/UI — traz princípios de design enterprise e refs (shadcn-svelte, Bits UI, Skeleton, Flowbite, Tauri docs).
 ---
 
 # Rodar o Interno UPLAB
@@ -125,6 +125,63 @@ Login inicial do app real: **`admin` / `admin123`**.
 - **Mock vs. backend real.** O `driver.mjs` NÃO exercita o Rust — valida UI,
   roteamento, login e gates de permissão do frontend. Lógica de backend é
   `cargo test` ou a janela real.
+
+## Design & Engenharia de referência (app de empresa)
+
+Antes de mexer em **tema, layout ou componentes**, consulte estas referências.
+O alvo é um SaaS/admin **enterprise**: sóbrio, denso de informação sem poluir,
+consistente entre módulos. Não invente um visual por módulo — padronize via
+tokens em `src/app.css` e componentes compartilhados em `src/lib/core/ui`.
+
+### Princípios a aplicar (destilados das refs)
+
+- **Tokens, não valores soltos.** Cor, raio, sombra, espaçamento e tipografia
+  saem de CSS vars em `:root` (`src/app.css`). Trocar tema = trocar tokens, não
+  caçar hex pelos `.svelte`. Mantenha suporte a tema claro/escuro via
+  `color-scheme` + vars duplicadas.
+- **Shell consistente.** Todo módulo usa o mesmo `ModuleShell` (header + área de
+  conteúdo). Considere **sidebar de navegação** + breadcrumb para módulos com
+  várias telas (padrão de admin dashboard), em vez de só header.
+- **Densidade enterprise.** Tabelas com zebra/hover sutil, alinhamento de
+  números à direita, estados vazios e de erro explícitos, paginação/filtros no
+  topo. Cards de métrica (KPI) com rótulo + valor grande + delta.
+- **Hierarquia tipográfica** clara (1 família, pesos 400/500/600/700), contraste
+  AA, foco visível em todos os interativos (acessibilidade = requisito corporativo).
+- **Motion contido.** Transições curtas (120–200ms), sem animações chamativas em
+  fluxo de trabalho. Skeleton/loading states em vez de spinners onde possível.
+
+### Stack de componentes (Svelte 5) — preferência
+
+1. **shadcn-svelte** — https://www.shadcn-svelte.com — base preferida: você copia
+   os componentes pro projeto (sem dep pesada), estiliza via tokens. Casa com a
+   filosofia de `src/lib/core/ui`.
+2. **Bits UI** — https://bits-ui.com — primitivos headless acessíveis (é a base do
+   shadcn-svelte). Use direto quando precisar de um primitivo não coberto.
+3. **Skeleton** — https://www.skeleton.dev — sistema de design Svelte + Tailwind,
+   bom catálogo de padrões de tema.
+4. **Flowbite Svelte Admin** — https://flowbite-svelte-admin-dashboard.vercel.app —
+   referência de layout de admin/dashboard (sidebar, tabelas, KPIs).
+5. SvelteForge Admin / **HTMLrev** (https://htmlrev.com/free-svelte-templates.html)
+   — templates prontos para roubar estrutura de tela.
+
+> Antes de adicionar lib nova, cheque o que já existe no projeto e prefira copiar
+> componente (shadcn style) a importar framework inteiro — o app é Tauri (bundle
+> enxuto importa).
+
+### Inspiração visual (design)
+
+- **Mobbin** (https://mobbin.com), **Dribbble – SaaS Dashboard**
+  (https://dribbble.com/tags/saas-dashboard), **Behance – Enterprise UI**
+  (https://www.behance.net), **Pinterest – Dashboard UI**. Use para padrões de
+  layout/cor; adapte aos tokens da marca UPLAB (azul/ciano/teal), não copie cru.
+- Prototipagem antes de codar telas grandes: **Figma** / **Moqups**.
+
+### Documentação técnica (engenharia)
+
+- **Tauri v2** — https://v2.tauri.app — janelas, IPC, updater, segurança/CSP,
+  multi-window (cada módulo abre em janela própria).
+- **Tauri + SvelteKit** — https://v2.tauri.app/start/frontend/sveltekit/ —
+  config SPA (`adapter-static`, `ssr=false`), que é o setup deste projeto.
 
 ## Troubleshooting
 

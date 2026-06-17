@@ -22,7 +22,8 @@ type Action = 'access' | 'create' | 'read' | 'update' | 'delete';
 
 let session = $state<Session | null>(null);
 let profile = $state<Profile | null>(null);
-let permissions = $state<string[]>([]);
+let permissions = $state<string[]>([]); // CRUD por usuário (uplab_user_permissions)
+let rolePermissions = $state<string[]>([]); // acesso a módulo/tela por papel (uplab_role_permissions)
 let ready = $state(false);
 let profileLoaded = $state(false);
 
@@ -45,12 +46,21 @@ export async function initAuth(): Promise<void> {
 async function loadIdentity(): Promise<void> {
   if (!session) return;
   profileLoaded = false;
-  const [{ data: prof }, { data: perms }] = await Promise.all([
-    supabase.from('profiles').select('id, nome, email, role').eq('id', session.user.id).single(),
-    supabase.from('uplab_user_permissions').select('permission').eq('user_id', session.user.id)
-  ]);
+  const { data: prof } = await supabase
+    .from('profiles')
+    .select('id, nome, email, role')
+    .eq('id', session.user.id)
+    .single();
   profile = (prof as Profile) ?? null;
+
+  const [{ data: perms }, { data: rperms }] = await Promise.all([
+    supabase.from('uplab_user_permissions').select('permission').eq('user_id', session.user.id),
+    profile
+      ? supabase.from('uplab_role_permissions').select('permission').eq('role', profile.role)
+      : Promise.resolve({ data: [] as { permission: string }[] })
+  ]);
   permissions = (perms ?? []).map((r: { permission: string }) => r.permission);
+  rolePermissions = (rperms ?? []).map((r: { permission: string }) => r.permission);
   profileLoaded = true;
 }
 
@@ -100,6 +110,23 @@ export function hasLevel(min: InternalRole | number): boolean {
   const need = typeof min === 'number' ? min : (ROLE_LEVELS[min] ?? 99);
   return currentLevel() >= need;
 }
+
+// --- Acesso a módulo/tela por PAPEL (uplab_role_permissions). Admin vê tudo. ---
+
+/** O papel do usuário acessa o módulo (ou alguma tela dele)? */
+export function canModule(moduleId: string): boolean {
+  if (profile?.role === 'admin') return true;
+  return rolePermissions.some((p) => p === moduleId || p.startsWith(`${moduleId}:`));
+}
+
+/** O papel do usuário acessa uma tela específica do módulo? */
+export function canScreen(moduleId: string, screenId: string): boolean {
+  if (profile?.role === 'admin') return true;
+  return rolePermissions.includes(`${moduleId}:${screenId}`);
+}
+
+/** Permissões de papel já carregadas (para a tela de Permissões refletir mudanças). */
+export const currentRolePermissions = () => rolePermissions;
 
 /** Checagem de permissão de UI. Admin vê tudo; demais conforme uplab_user_permissions. */
 export function can(moduleId: string, action: Action): boolean {

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { MODULES } from '$core/modules';
+  import { carregarModulosAtivos, moduloAtivo, setModuloAtivo } from '$core/modules-config';
   import { INTERNAL_ROLES, ROLE_LABEL, currentSession } from '$core/auth.svelte';
   import {
     listUsers,
@@ -31,7 +32,26 @@
   let criando = $state(false);
   let okMsg = $state('');
 
-  onMount(carregarUsuarios);
+  // Ativação de módulos do sistema
+  let ativos = $state<Record<string, boolean>>({});
+  let salvandoMod = $state('');
+  async function toggleModulo(id: string, ativo: boolean) {
+    salvandoMod = id;
+    error = '';
+    try {
+      await setModuloAtivo(id, ativo);
+      ativos = { ...ativos, [id]: ativo };
+    } catch (e) {
+      error = msg(e);
+    } finally {
+      salvandoMod = '';
+    }
+  }
+
+  onMount(async () => {
+    await carregarUsuarios();
+    ativos = await carregarModulosAtivos();
+  });
 
   async function cadastrar(e: Event) {
     e.preventDefault();
@@ -151,6 +171,21 @@
 
   <section>
     {#if error}<p class="err">{error}</p>{/if}
+
+    <div class="modcfg">
+      <h4>Módulos do sistema</h4>
+      <p class="dim hint" style="margin:0 0 0.7rem">Desative os módulos em desenvolvimento até estarem prontos para produção. O que estiver desativado some do launcher de todos.</p>
+      <div class="modgrid">
+        {#each MODULES as m (m.id)}
+          <label class="modtoggle">
+            <input type="checkbox" checked={moduloAtivo(m.id, ativos)} disabled={salvandoMod === m.id} onchange={(e) => toggleModulo(m.id, e.currentTarget.checked)} />
+            <span class="ml">{m.label}</span>
+            {#if !m.pronto}<span class="bdev">dev</span>{/if}
+          </label>
+        {/each}
+      </div>
+    </div>
+
     {#if !selected}
       <p class="dim">Selecione um usuário para gerenciar.</p>
     {:else}
@@ -328,5 +363,38 @@
   section h4 {
     margin: 0 0 0.6rem;
     font-size: 0.9rem;
+  }
+  .modcfg {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    padding: 0.9rem 1rem;
+    margin-bottom: 1.1rem;
+  }
+  .modgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.4rem 0.8rem;
+  }
+  .modtoggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+  }
+  .modtoggle .ml {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bdev {
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #b4690e;
+    background: rgba(217, 125, 40, 0.16);
+    padding: 0.05rem 0.3rem;
+    border-radius: var(--radius-pill);
   }
 </style>

@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { userLabel } from '$core/auth.svelte';
-  import type { ModuleInfo } from '$core/modules';
+  import { moduleColor, type ModuleInfo } from '$core/modules';
   import ModuleIcon from '$core/ui/ModuleIcon.svelte';
   import WinControls from '$core/ui/WinControls.svelte';
 
@@ -10,7 +10,7 @@
 
 <header data-tauri-drag-region>
   <div class="title">
-    <span class="badge"><ModuleIcon id={info.id} size={20} /></span>
+    <span class="badge" style="--c:{moduleColor(info.id)}"><ModuleIcon id={info.id} size={20} /></span>
     <div>
       <strong>{info.label}</strong>
       <span class="dim">{info.description}</span>
@@ -47,9 +47,9 @@
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: var(--brand-grad);
+    background: var(--c, var(--accent));
     color: #fff;
-    box-shadow: 0 4px 10px rgba(39, 102, 201, 0.3);
+    box-shadow: 0 4px 10px color-mix(in srgb, var(--c, var(--accent)) 40%, transparent);
   }
   .title div {
     display: flex;
