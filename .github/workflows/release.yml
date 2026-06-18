@@ -39,6 +39,7 @@ jobs:
           # Variáveis públicas do Supabase usadas no build do frontend
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          PUBLIC_PAINEL_API_URL: ${{ secrets.PUBLIC_PAINEL_API_URL }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Interno UPLAB ${{ github.ref_name }}'
