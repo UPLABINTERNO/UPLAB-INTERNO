@@ -8,23 +8,25 @@
   let { info, children }: { info: ModuleInfo; children: Snippet } = $props();
 </script>
 
-<header data-tauri-drag-region>
-  <div class="title">
-    <span class="badge" style="--c:{moduleColor(info.id)}"><ModuleIcon id={info.id} size={20} /></span>
-    <div>
-      <strong>{info.label}</strong>
-      <span class="dim">{info.description}</span>
+<div class="shell">
+  <header data-tauri-drag-region>
+    <div class="title">
+      <span class="badge" style="--c:{moduleColor(info.id)}"><ModuleIcon id={info.id} size={20} /></span>
+      <div>
+        <strong>{info.label}</strong>
+        <span class="dim">{info.description}</span>
+      </div>
     </div>
-  </div>
-  <div class="right">
-    <span class="dim user">{userLabel()}</span>
-    <WinControls />
-  </div>
-</header>
+    <div class="right">
+      <span class="dim user">{userLabel()}</span>
+      <WinControls />
+    </div>
+  </header>
 
-<main>
-  {@render children()}
-</main>
+  <main>
+    {@render children()}
+  </main>
+</div>
 
 <style>
   header {
@@ -65,7 +67,16 @@
     color: var(--text-dim);
     font-size: 0.82rem;
   }
+  .shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
   main {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
     padding: 1.4rem;
+    background: var(--bg-grad, var(--bg));
   }
 </style>

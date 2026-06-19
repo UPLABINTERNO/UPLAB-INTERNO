@@ -13,7 +13,7 @@ export const MODULES: ModuleInfo[] = [
   { id: 'financeiro', label: 'Financeiro', description: 'Lançamentos e fluxo de caixa', icon: 'W', pronto: true },
   { id: 'campanhas', label: 'Campanhas', description: 'Campanhas comerciais', icon: 'M', pronto: false },
   { id: 'tickets_clientes', label: 'Tickets Clientes', description: 'Chamados de clientes', icon: 'T', pronto: false },
-  { id: 'tickets_internos', label: 'Tickets Internos', description: 'Chamados internos', icon: 'T', pronto: false },
+  { id: 'tickets_internos', label: 'Tickets Internos', description: 'Chamados internos', icon: 'T', pronto: true },
   { id: 'chat', label: 'Chat Interno', description: 'Mensagens entre a equipe', icon: 'C', pronto: true },
   { id: 'api', label: 'Integrações/API', description: 'Configuração de integrações', icon: 'P', pronto: false },
   { id: 'banco_dados', label: 'Banco de Dados', description: 'Administração de dados', icon: 'D', pronto: false },

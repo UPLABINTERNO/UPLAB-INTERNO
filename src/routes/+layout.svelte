@@ -12,11 +12,18 @@
   } from '$core/auth.svelte';
   import Login from '$core/ui/Login.svelte';
   import WinControls from '$core/ui/WinControls.svelte';
+  import { initPresence, stopPresence } from '$core/presence.svelte';
 
   let { children } = $props();
 
   // Gate global: login obrigatório antes de qualquer rota (launcher e módulos).
   onMount(initAuth);
+
+  // Presença da equipe: ativa enquanto houver sessão interna; encerra ao sair.
+  $effect(() => {
+    if (currentSession() && identityReady() && isInternal()) void initPresence();
+    else stopPresence();
+  });
 </script>
 
 {#if !authReady()}

@@ -87,6 +87,7 @@
   .launcher {
     min-height: 100vh;
     padding: 0 0 1.2rem;
+    background: var(--bg-grad, var(--bg));
   }
   header {
     display: flex;

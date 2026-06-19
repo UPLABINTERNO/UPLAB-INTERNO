@@ -125,10 +125,57 @@ export async function mensagensUnificadas(c: Cliente): Promise<MensagemHist[]> {
   return todas;
 }
 
+// --- Tempo de resposta (agregado no banco via RPC; ver schema-atendimento-rpc.sql) ---
+export interface TRAtendente { atendente: string; respostas: number; tempo_medio_s: number; }
+export interface TRDia { dia: string; respostas: number; tempo_medio_s: number; }
+
+export async function trPorAtendente(de: string, ate: string): Promise<TRAtendente[]> {
+  const { data, error } = await supabase.rpc('uplab_tr_atendente', { de, ate });
+  if (error) throw error;
+  return (data ?? []) as TRAtendente[];
+}
+export async function trPorDia(de: string, ate: string): Promise<TRDia[]> {
+  const { data, error } = await supabase.rpc('uplab_tr_dia', { de, ate });
+  if (error) throw error;
+  return (data ?? []) as TRDia[];
+}
+
+/** Histórico COMPLETO de um cliente (todas as conversas daquele número/chat). */
+export async function mensagensDoCliente(chatId: string): Promise<MensagemHist[]> {
+  const PAGE = 1000;
+  const todas: MensagemHist[] = [];
+  for (let from = 0; from < 8000; from += PAGE) {
+    const { data, error } = await supabase
+      .from('uplab_chat_mensagens')
+      .select('id,chat_id,classe,autor_nome,texto,tipo,ts,ord')
+      .eq('chat_id', chatId)
+      .order('ord', { ascending: true, nullsFirst: true })
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    todas.push(...((data ?? []) as MensagemHist[]));
+    if (!data || data.length < PAGE) break;
+  }
+  return todas;
+}
+
 export async function listarAtendentes(): Promise<Atendente[]> {
   const { data, error } = await supabase.from('uplab_atendentes').select('uuid,nome,email,is_ativo').order('nome');
   if (error) throw error;
   return (data ?? []) as Atendente[];
+}
+
+// --- Config: quais atendentes aparecem nos dashboards (nome trim -> visível) ---
+export async function listarConfigAtend(): Promise<Record<string, boolean>> {
+  const { data, error } = await supabase.from('uplab_atend_config').select('nome,visivel');
+  if (error) throw error;
+  const m: Record<string, boolean> = {};
+  for (const r of data ?? []) m[r.nome] = r.visivel;
+  return m;
+}
+export async function salvarConfigAtend(nome: string, visivel: boolean): Promise<void> {
+  const { error } = await supabase.from('uplab_atend_config')
+    .upsert({ nome, visivel, atualizado_em: new Date().toISOString() }, { onConflict: 'nome' });
+  if (error) throw error;
 }
 
 export async function atualizarCliente(chatId: string, campos: Partial<Pick<Cliente, 'codigo_loja' | 'atendente_uuid' | 'nome'>>): Promise<void> {
